@@ -15,7 +15,7 @@ jobs:
     - name: Set up Python ${{ matrix.python-version }}
       run: | 
           python -m pip install --upgrade pip
-          pip install fastapi pytest opencv-python numpy tensorflow aiofiles uvicorn jose passlib
+          pip install fastapi pytest opencv-python numpy tensorflow aiofiles uvicorn python-jose passlib
     - name: Run tests
       run: |
         pytest
