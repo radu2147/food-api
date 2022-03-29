@@ -5,9 +5,10 @@ from pydantic.main import BaseModel
 from model.user import User
 
 
-class UserRepository(BaseModel):
+class UserRepository:
 
-    lista: Dict[str, User] = {}
+    def __init__(self) -> None:
+        self.lista: Dict[str, User] = {}
 
     def __contains__(self, user: str) -> bool:
         return user in self.lista
@@ -22,4 +23,3 @@ class UserRepository(BaseModel):
             return None
         self.lista[user.username] = user
         return user
-

@@ -7,10 +7,11 @@ from model.meal import Meal
 from model.user import User
 
 
-class Repository(BaseModel):
+class Repository:
 
-    lista: List[Meal] = []
-    __id: int = 0
+    def __init__(self) -> None:
+        self.lista: List[Meal] = []
+        self.__id: int = 0
 
     def __generate_id(self) -> int:
         self.__id += 1

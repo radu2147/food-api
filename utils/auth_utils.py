@@ -9,12 +9,12 @@ from passlib.context import CryptContext
 from model.user import User, TokenData
 from repository.user_repository import UserRepository
 from utils.constants import SECRET_KEY, ALGORITHM
-from utils.dependencies import get_user_db
+from utils.dependencies import get_crypt_context, get_user_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-def verify_password(pwd_context: CryptContext, plain_password: str, hashed_password: str):
+def verify_password(plain_password: str, hashed_password: str, pwd_context: CryptContext):
     return pwd_context.verify(plain_password, hashed_password)
 
 
@@ -23,16 +23,15 @@ def get_password_hash(pwd_context: CryptContext, password: str):
 
 
 def get_user(db: UserRepository, username: str) -> Optional[User]:
-    print(db.lista)
     if username in db:
         return db[username]
 
 
-def authenticate_user(db: UserRepository, username: str, password: str) -> Optional[User]:
+def authenticate_user(db: UserRepository, username: str, password: str, crypt_context: CryptContext) -> Optional[User]:
     user = get_user(db, username)
     if not user:
         return None
-    if not verify_password(password, user.password):
+    if not verify_password(password, user.password, crypt_context):
         return None
     return user
 

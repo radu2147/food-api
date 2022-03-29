@@ -9,6 +9,8 @@ import numpy as np
 import uvicorn
 from fastapi import FastAPI, UploadFile, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+
+from passlib.context import CryptContext
 from pydantic import BaseSettings
 from tensorflow.keras.preprocessing.image import load_img
 
@@ -17,9 +19,9 @@ from model.prediction import Prediction
 from model.user import Token, User
 from repository.repository import Repository
 from repository.user_repository import UserRepository
-from utils.auth_utils import authenticate_user, create_access_token, get_current_user
+from utils.auth_utils import authenticate_user, create_access_token, get_current_user, get_password_hash
 from utils.constants import ACCESS_TOKEN_EXPIRE_MINUTES
-from utils.dependencies import get_meal_db, get_model, get_user_db
+from utils.dependencies import get_crypt_context, get_meal_db, get_model, get_user_db
 
 
 class Settings(BaseSettings):
@@ -46,10 +48,6 @@ getClasses()
 @app.get("/meal")
 async def get_meals(datetime: datetime, current_user: User = Depends(get_current_user), meal_repo: Repository = Depends(get_meal_db)) -> List[Meal]:
     return meal_repo.filter_by_date(datetime, current_user)
-
-@app.get("/me", response_model=User)
-async def read_users_me(current_user: User = Depends(get_current_user)):
-    return current_user
 
 @app.post("/meal")
 async def add_meal(meal: Meal, current_user: User = Depends(get_current_user), meal_repo: Repository = Depends(get_meal_db)):
@@ -82,8 +80,9 @@ async def predict(
 
 @app.post("/login", response_model=Token)
 async def login_for_access_token(user: User,
-                                 users_db: UserRepository = Depends(get_user_db)):
-    user = authenticate_user(users_db, user.username, user.password)
+                                 users_db: UserRepository = Depends(get_user_db), 
+                                 crypt_context: CryptContext = Depends(get_crypt_context)):
+    user = authenticate_user(users_db, user.username, user.password, crypt_context)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -99,7 +98,10 @@ async def login_for_access_token(user: User,
 
 @app.post("/register", response_model=Token)
 async def register_for_access_token(user: User,
-                                    users_db: UserRepository = Depends(get_user_db)):
+                                    users_db: UserRepository = Depends(get_user_db),
+                                    crypt_context: CryptContext = Depends(get_crypt_context)
+                                    ):
+    user.password = get_password_hash(crypt_context, user.password)
     user = users_db.add_user(user)
     if not user:
         raise HTTPException(
@@ -109,7 +111,8 @@ async def register_for_access_token(user: User,
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": user.username}, 
+        expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
