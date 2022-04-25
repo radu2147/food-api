@@ -15,6 +15,7 @@ from pydantic import BaseSettings
 from tensorflow.keras.preprocessing.image import load_img
 
 from model.meal import Meal
+from model.nutritional_values import NutritionalValues
 from model.prediction import Prediction
 from model.user import Token, User
 from repository.repository import Repository
@@ -27,8 +28,6 @@ from utils.dependencies import get_crypt_context, get_meal_db, get_model, get_us
 class Settings(BaseSettings):
     uploadLocation: str = 'C:\\Users\\RADU\\Desktop\\food-api\\input_images'
 
-
-
 settings = Settings()
 
 app = FastAPI()
@@ -39,8 +38,9 @@ classes = []
 def getClasses():
     with open("classes.txt") as f:
         for el in f.readlines():
-            classes.append(el.strip())
-
+            el = el.strip()
+            el = " ".join([f'{substr[0].upper()}{substr[1:].lower()}' for substr in el.split("_")])
+            classes.append(Prediction(el, NutritionalValues(kcal=140.0, protein=10.0, carbs=53, fats=7.5)))
 
 getClasses()
 
@@ -65,16 +65,20 @@ async def predict(
         file: UploadFile,
         model=Depends(get_model)
 ):
-    async with aiofiles.open(os.path.join(settings.uploadLocation, file.filename), 'wb') as out_file:
-        content = await file.read()  # async read
-        await out_file.write(content)
-        img = np.array(load_img('\\'.join([settings.uploadLocation, file.filename])))
-        img = cv2.resize(img, (224, 224))
-        x = model.predict(np.array([img]))[0]
-        index = np.argmax(x)
-        prediction = Prediction(float(x[index]), classes[index])
-        rez = prediction.to_map()
-    os.remove(os.path.join(settings.uploadLocation, file.filename))
+    try:
+        async with aiofiles.open(os.path.join(settings.uploadLocation, file.filename), 'wb') as out_file:
+            content = await file.read()  # async read
+            await out_file.write(content)
+            img = np.array(load_img('\\'.join([settings.uploadLocation, file.filename])))
+            img = cv2.resize(img, (224, 224))
+            x = model.predict(np.array([img]))[0]
+            index = np.argmax(x)
+            prediction = classes[index]
+            if x[index] < 0.6:
+                raise HTTPException(status_code=400, detail="Food not detected")
+            rez = prediction.to_map()
+    finally:
+        os.remove(os.path.join(settings.uploadLocation, file.filename))
     return rez
 
 

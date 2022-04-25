@@ -13,3 +13,4 @@ class Meal(BaseModel):
     meal_type: MealType
     date: datetime
     user: User
+    quantity: int
