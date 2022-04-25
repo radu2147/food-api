@@ -49,7 +49,8 @@ def test_add_meal():
             "user": {
                 "username": "",
                 "password": ""
-            }
+            },
+            "quantity": 1
         },
     )
     assert response.status_code == 200
