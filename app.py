@@ -37,10 +37,11 @@ classes = []
 
 def getClasses():
     with open("classes.txt") as f:
-        for el in f.readlines():
-            el = el.strip()
-            el = " ".join([f'{substr[0].upper()}{substr[1:].lower()}' for substr in el.split("_")])
-            classes.append(Prediction(el, NutritionalValues(kcal=140.0, protein=10.0, carbs=53, fats=7.5)))
+        for string in f.readlines():
+            food_details = string.strip().split(',')
+            food_name = food_details[0]
+            food_name_prettified = " ".join([f'{substr[0].upper()}{substr[1:].lower()}' for substr in food_name.split("_")])
+            classes.append(Prediction(food_name_prettified, NutritionalValues(kcal=int(food_details[1]), carbs=int(food_details[2]), protein=int(food_details[3]), fats=int(food_details[4]))))
 
 getClasses()
 
