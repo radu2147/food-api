@@ -22,11 +22,22 @@ from repository.repository import Repository
 from repository.user_repository import UserRepository
 from utils.auth_utils import authenticate_user, create_access_token, get_current_user, get_password_hash
 from utils.constants import ACCESS_TOKEN_EXPIRE_MINUTES
+import databases
 from utils.dependencies import get_crypt_context, get_meal_db, get_model, get_user_db
 
 
 class Settings(BaseSettings):
     uploadLocation: str = 'C:\\Users\\RADU\\Desktop\\food-api\\input_images'
+    POSTGRES_USER : str = os.getenv("POSTGRES_USER")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD")
+    POSTGRES_SERVER : str = os.getenv("POSTGRES_SERVER","localhost")
+    POSTGRES_PORT : str = os.getenv("POSTGRES_PORT",5432) # default postgres port is 5432
+    POSTGRES_DB : str = os.getenv("POSTGRES_DB","food")
+    DATABASE_URL: str = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
+
+
+DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/food?sslmode=prefer'
+database = databases.Database(DATABASE_URL)
 
 settings = Settings()
 
