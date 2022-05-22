@@ -1,25 +1,25 @@
-from typing import List, Optional, Dict
+from typing import Optional
+from sqlalchemy.orm import Session
+from model.user import DbUser, User
 
-from pydantic.main import BaseModel
+class DbUserRepository:
 
-from model.user import User
+    def exists(self, db: Session, user: str) -> bool:
+        rez = db.query(DbUser).filter(DbUser.username == user)
+        return len(rez.all()) == 1
 
-
-class UserRepository:
-
-    def __init__(self) -> None:
-        self.lista: Dict[str, User] = {}
-
-    def __contains__(self, user: str) -> bool:
-        return user in self.lista
-
-    def __getitem__(self, item: str) -> Optional[User]:
-        if item in self.lista:
-            return self.lista[item]
-        return None
-
-    def add_user(self, user: User) -> Optional[User]:
-        if user.username in self.lista:
+    def get(self, db: Session, user: str) -> Optional[User]:
+        rez = db.query(DbUser).filter(DbUser.username == user)
+        all = rez.all()
+        if len(all) == 0:
             return None
-        self.lista[user.username] = user
-        return user
+        return User(username=all[0].username, password=all[0].hashed_password)
+
+    def add_user(self, db: Session, user: User) -> Optional[User]:
+        if self.exists(db, user.username):
+            return None
+        db_user = DbUser(username=user.username, hashed_password=user.password)
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        return db_user

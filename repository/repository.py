@@ -2,27 +2,33 @@ from datetime import datetime
 from typing import List
 
 from pydantic.main import BaseModel
+from model.base import SessionLocal
 
-from model.meal import Meal
-from model.user import User
+from model.meal import DbMeal, Meal
+from model.user import DbUser, User
+from sqlalchemy.orm import Session
 
+class DbMealRepository:
 
-class Repository:
+    def filter_by_date(self, db: Session, date: datetime, current_user: User) -> List[Meal]:
+        rez = db.query(DbMeal).filter(DbMeal.date == self.__parse_date(date), DbMeal.username == current_user.username).all()
+        return [Meal.fromDb(el) for el in rez]
 
-    def __init__(self) -> None:
-        self.lista: List[Meal] = []
-        self.__id: int = 0
+    def __parse_date(self, date: datetime) -> datetime:
+        return datetime.combine(date.date(), datetime.today().min.time())
 
-    def __generate_id(self) -> int:
-        self.__id += 1
-        return self.__id
-
-    def add(self, el):
-        el.id = self.__generate_id()
-        self.lista.append(el)
-
-    def remove(self, id: int):
-        self.lista = [el for el in self.lista if el.id != id]
-
-    def filter_by_date(self, date: datetime, current_user: User) -> List[Meal]:
-        return [el for el in self.lista if el.date.date() == date.date() and el.user == current_user]
+    def add(self, db: Session, el: Meal):
+        db_meal = DbMeal(
+            name=el.name,
+            quantity=el.quantity,
+            date=self.__parse_date(el.date),
+            meal_type=el.meal_type,
+            kcal=el.kcal,
+            protein=el.protein,
+            carbs=el.carbs,
+            fat=el.fat,
+            username=el.user.username
+        )
+        db.add(db_meal)
+        db.commit()
+        db.refresh(db_meal)

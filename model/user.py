@@ -6,11 +6,6 @@ from sqlalchemy.orm import relationship
 
 from model.base import Base
 
-
-class User(BaseModel):
-    username: str
-    password: str
-
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -23,8 +18,21 @@ class TokenData(BaseModel):
 class DbUser(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+    username = Column(String, unique=True, index=True, primary_key=True)
+    hashed_password = Column(String, nullable = False)
 
-    meals = relationship("DbMeal", back_populates="owner")
+    meals = relationship("DbMeal", back_populates="user")
+
+class User(BaseModel):
+    username: str
+    password: str
+
+    class Config:
+        orm_mode = True
+
+    @staticmethod
+    def fromDb(user: DbUser) -> "User":
+        return User(
+            username=user.username,
+            password=user.hashed_password
+        )
